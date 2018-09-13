@@ -1,59 +1,64 @@
-const HttpCode = require( 'http-code' );
-const Error = HttpCode.prototype.__proto__.constructor;
+/**
+ * class Event is used to override Event class, which is easier to use. For example, building it looks like :
+ * first = new Event( 'name', {'any':'data'}, this );
+ * bind = new Event( first, null, this );
+ */
 
-const type = require( 'types' );
-const EventTarget = require( './event-target' );
+function def(field, value) {
+    Object.defineProperty(this, field, {
+        "enumerable": true,
+        "writable": false,
+        "value": value
+    });
+}
+
+function deff(obj) {
+    for (let field in obj)
+        if (obj.hasOwnProperty(field))
+            def.call(this, field, obj[field]);
+}
 
 class Event {
 
-    constructor( name_or_previous_event, options_or_target, currentTarget, originalTarget ) {
+    constructor(type, params, target) {
 
-        if( type.is_string( name_or_previous_event ) ) {
+        if (!(this instanceof Event))
+            return new Event(type, params, target);
 
-            let name = name_or_previous_event,
-                options = options_or_target;
+        this.defaultPrevented = false;
+        this.propagationStopped = false;
 
-            this.type = name;
-
-            if( originalTarget && originalTarget instanceof EventTarget ) {
-                Object.defineProperty( this, 'originalTarget', {'configurable':false,'value':originalTarget} );
-                Object.defineProperty( this, 'target',         {'configurable':false,'value':originalTarget} );
-            }
-            if( currentTarget && currentTarget instanceof EventTarget ) {
-                Object.defineProperty( this, 'currentTarget',  {'configurable':false,'value':currentTarget} );
-            }
-
-            if( type.is_object( options ) )
-                this.options = options;
-
-            Object.defineProperty( this, 'timeStamp', {'configurable':false,'value':Date.now()} );
-
+        let parent;
+        if (type instanceof Event) {
+            parent = type;
+            type = parent.type;
         }
-        else if( name_or_previous_event instanceof Event && options_or_target instanceof EventTarget ){
 
-            let previous = name_or_previous_event,
-                target = options_or_target;
+        let defs = {};
+        defs['type'] = type;
+        defs['parent'] = parent;
+        defs['currentTarget'] = target;
+        defs['timestamp'] = Date.now();
 
-            this.type = name_or_previous_event.type;
+        if (!parent) parent = {};
+        defs['detail'] = params || parent.detail || null;
+        defs['value'] = parent.originalTarget || target || null;
+        defs['originalTarget'] = parent.originalTarget || target || null;
+        defs['target'] = parent.originalTarget || target || null;
 
-            if( originalTarget && originalTarget instanceof EventTarget ) {
-                Object.defineProperty( this, 'originalTarget', {'configurable':false,'value':previous.originalTarget} );
-                Object.defineProperty( this, 'target',         {'configurable':false,'value':previous.originalTarget} );
-            }
-            if( currentTarget && currentTarget instanceof EventTarget ) {
-                Object.defineProperty( this, 'currentTarget',  {'configurable':false,'value':target} );
-            }
+        deff.call(this, defs);
+    }
 
-            if( type.is_object( options_or_target ) )
-                this.options = Object.create( name_or_previous_event.options );
+    preventDefault() {
+        this.defaultPrevented = true;
+        return this;
+    }
 
-            Object.defineProperty( this, 'timeStamp', {'configurable':false,'value':previous.timeStamp} );
-        }
-        else {
-
-            throw new Error( "Bad arguments" );
-        }
+    stopPropagation() {
+        this.propagationStopped = true;
+        return this;
     }
 }
+
 
 module.exports = Event;

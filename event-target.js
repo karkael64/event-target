@@ -1,5 +1,18 @@
-const type = require( 'types' );
-const Event = require( './event' );
+const Event = require('./event');
+
+
+function is_string(el) {
+    return (typeof el === 'string');
+}
+
+function is_list(el) {
+    return el && (el instanceof Array);
+}
+
+function is_function(el) {
+    return (typeof el === 'function');
+}
+
 
 /**
  * @class EventTarget allows you to use the event paradigm, synchronous and asynchronous.
@@ -9,7 +22,7 @@ class EventTarget {
 
     constructor() {
 
-        Object.defineProperty( this, "__events__", {
+        Object.defineProperty(this, "__events__", {
             enumerable: false,
             configurable: false,
             writable: false,
@@ -24,31 +37,50 @@ class EventTarget {
      * @returns {EventTarget}
      */
 
-    on( event, fn ) {
-        if( type.is_string( event ) ) {
+    on(event, fn) {
+
+        if (is_string(event)) {
             event = event.toLowerCase();
-            let split = event.split( /[, ]+/g );
-            if( split.length >= 2 ) {
-                EventTarget.prototype.on.call( this, split, fn );
+            let split = event.split(/[, ]+/g);
+            if (split.length >= 2) {
+                EventTarget.prototype.on.call(this, split, fn);
                 return this;
             }
         }
-        if( type.is_list( event ) ) {
-            for( let ev of event )
-                EventTarget.prototype.on.call( this, ev, fn );
+        if (is_list(event)) {
+            for (let ev of event)
+                EventTarget.prototype.on.call(this, ev, fn);
             return this;
         }
-        if( type.is_list( fn ) ) {
-            for( let f of fn )
-                EventTarget.prototype.on.call( this, event, f );
+        if (is_list(fn)) {
+            for (let f of fn)
+                EventTarget.prototype.on.call(this, event, f);
             return this;
         }
 
-        if( type.is_string( event ) && type.is_function( fn ) ){
-            if( !type.is_list( this.__events__[ event ] ) )
-                this.__events__[ event ] = [];
-            this.__events__[ event ].push( fn );
-            return this;
+        let self = this;
+        if (is_string(event) && is_function(fn)) {
+
+
+            if (this.addEventListener && !this.__events__[event]) {
+                this.addEventListener(event, function () {
+                    arguments[0] = new Event(arguments[0].type, null, self);
+                    dispatch.apply(self, arguments)
+                });
+            }
+
+            if (this.attachEvent && !this.__events__[event]) {
+                this.attachEvent(event, function () {
+                    arguments[0] = new Event(arguments[0].type, null, self);
+                    dispatch.apply(self, arguments)
+                });
+            }
+
+            if (!is_list(this.__events__[event]))
+                this.__events__[event] = [];
+
+            this.__events__[event].push(fn);
+
         }
         return this;
     }
@@ -61,38 +93,38 @@ class EventTarget {
      * @returns {EventTarget}
      */
 
-    detach( event, fn ) {
+    detach(event, fn) {
 
-        if( type.is_string( event ) ) {
+        if (is_string(event)) {
             event = event.toLowerCase();
-            let split = event.split( /[, ]+/g );
-            if( split.length >= 2 ) {
-                EventTarget.prototype.detach.call( this, split, fn );
+            let split = event.split(/[, ]+/g);
+            if (split.length >= 2) {
+                EventTarget.prototype.detach.call(this, split, fn);
                 return this;
             }
         }
-        if( type.is_list( event ) ) {
-            for( let ev of event )
-                EventTarget.prototype.detach.call( this, ev, fn );
+        if (is_list(event)) {
+            for (let ev of event)
+                EventTarget.prototype.detach.call(this, ev, fn);
             return this;
         }
-        if( type.is_list( fn ) ) {
-            for( let f of fn )
-                EventTarget.prototype.detach.call( this, event, f );
+        if (is_list(fn)) {
+            for (let f of fn)
+                EventTarget.prototype.detach.call(this, event, f);
             return this;
         }
 
-        if( type.is_string( event ) && type.is_list( this.__events__[ event ] ) ) {
-            if( type.is_function( fn ) ){
+        if (is_string(event) && is_list(this.__events__[event])) {
+            if (is_function(fn)) {
                 let res = [], t;
-                while( t = this.__events__[ event ].shift() ){
-                    if( t !== fn )
-                        res.push( t );
+                while (t = this.__events__[event].shift()) {
+                    if (t !== fn)
+                        res.push(t);
                 }
-                this.__events__[ event ] = res;
+                this.__events__[event] = res;
             }
             else {
-                this.__events__[ event ] = [];
+                this.__events__[event] = [];
             }
         }
         return this;
@@ -106,41 +138,43 @@ class EventTarget {
      * @returns {EventTarget}
      */
 
-    dispatch( event, args ) {
+    dispatch(event, args) {
 
-        if( type.is_string( event ) ) {
+        if (is_string(event)) {
             event = event.toLowerCase();
-            let split = event.split( /[, ]+/g );
-            if( split.length >= 2 ) {
-                EventTarget.prototype.dispatch.call( this, split, args );
+            let split = event.split(/[, ]+/g);
+            if (split.length >= 2) {
+                EventTarget.prototype.dispatch.call(this, split, args);
                 return this;
             }
         }
-        if( type.is_list( event ) ) {
-            for( let ev of event )
-                EventTarget.prototype.dispatch.call( this, ev, args );
+        if (is_list(event)) {
+            for (let ev of event)
+                EventTarget.prototype.dispatch.call(this, ev, args);
             return this;
         }
 
         let obj;
-        if( event instanceof Event )
-            obj = new Event( event, this );
-        else if( type.is_string( event ) )
-            obj = new Event( event );
+        if (event instanceof Event)
+            obj = new Event(event, this);
+        else if (is_string(event))
+            obj = new Event(event, {}, this);
         else
-            obj = new Event( "" );
+            obj = new Event("", {}, this);
 
         let self = this;
-        if( type.is_list( this.__events__[ event ] ) ){
+        if (is_list(this.__events__[event])) {
 
-            if( !type.is_list( args ) ) {
-                if( type.is_undefined( args ) ) args = [];
+            if (!is_list(args)) {
+                if (args === undefined) args = [];
                 else args = [args];
             }
-            args.unshift( obj );
+            args.unshift(obj);
 
-            for( let fn of this.__events__[ event ] ){
-                setTimeout( () => { fn.apply( self, args ); }, 1 );
+            for (let fn of this.__events__[event]) {
+                setTimeout(() => {
+                    fn.apply(self, args);
+                }, 1);
             }
         }
         return this;
@@ -153,40 +187,40 @@ class EventTarget {
      * @returns {EventTarget}
      */
 
-    dispatchSync( event, args ) {
+    dispatchSync(event, args) {
 
-        if( type.is_string( event ) ) {
+        if (is_string(event)) {
             event = event.toLowerCase();
-            let split = event.split( /[, ]+/g );
-            if( split.length >= 2 ) {
-                EventTarget.prototype.dispatchSync.call( this, split, args );
+            let split = event.split(/[, ]+/g);
+            if (split.length >= 2) {
+                EventTarget.prototype.dispatchSync.call(this, split, args);
                 return this;
             }
         }
-        if( type.is_list( event ) ) {
-            for( let ev of event )
-                EventTarget.prototype.dispatchSync.call( this, ev, args );
+        if (is_list(event)) {
+            for (let ev of event)
+                EventTarget.prototype.dispatchSync.call(this, ev, args);
             return this;
         }
 
         let obj;
-        if( event instanceof Event )
-            obj = new Event( event, this );
-        else if( type.is_string( event ) )
-            obj = new Event( event );
+        if (event instanceof Event)
+            obj = new Event(event, this);
+        else if (is_string(event))
+            obj = new Event(event, {}, this);
         else
-            obj = new Event( "" );
+            obj = new Event("", {}, this);
 
-        if( type.is_list( this.__events__[ event ] ) ){
+        if (is_list(this.__events__[event])) {
 
-            if( !type.is_list( args ) ) {
-                if( type.is_undefined( args ) ) args = [];
+            if (!is_list(args)) {
+                if (args === undefined) args = [];
                 else args = [args];
             }
-            args.unshift( obj );
+            args.unshift(obj);
 
-            for( let fn of this.__events__[ event ] ){
-                fn.apply( this, args );
+            for (let fn of this.__events__[event]) {
+                fn.apply(this, args);
             }
         }
         return this;
@@ -198,9 +232,9 @@ class EventTarget {
      * @returns null|number
      */
 
-    count( event ) {
-        return type.is_string( event ) && type.is_list( this.__events__[ event ] ) ?
-            this.__events__[ event ].length :
+    count(event) {
+        return is_string(event) && is_list(this.__events__[event]) ?
+            this.__events__[event].length :
             null;
     }
 }
