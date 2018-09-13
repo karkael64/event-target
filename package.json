@@ -1,0 +1,24 @@
+{
+  "name": "event-target",
+  "version": "1.0.0",
+  "description": "Override EventTarget & Event for custom calls",
+  "main": "event-target.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/karkael64/event-target.git"
+  },
+  "keywords": [
+    "Event",
+    "EventTarget",
+    "override"
+  ],
+  "author": "\"Karkael Haunter\" <karkael@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/karkael64/event-target/issues"
+  },
+  "homepage": "https://github.com/karkael64/event-target#readme"
+}
