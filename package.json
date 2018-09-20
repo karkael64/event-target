@@ -1,11 +1,8 @@
 {
   "name": "event-target",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Override EventTarget & Event for custom calls",
   "main": "event-target.js",
-  "dependencies": {
-    "http-code": "github:karkael64/http-code"
-  },
   "scripts": {
     "test": "node unit"
   },
