@@ -132,13 +132,14 @@ class EventTarget {
 
     /**
      * @function dispatch is used to call every functions of ${event} asynchronously after a short timeout, with
-     * arguments ${arg}.
-     * @param event Event|string|array
-     * @param args list|array|undefined
+     * arguments ${args}.
+     * @param event {Event|string|Array}
+     * @param args {Array|undefined}
+     * @param then {function({Event})}
      * @returns {EventTarget}
      */
 
-    dispatch(event, args) {
+    dispatch(event, args, then) {
 
         if (is_string(event)) {
             event = event.toLowerCase();
@@ -171,35 +172,44 @@ class EventTarget {
             }
             args.unshift(obj);
 
+            let len = this.__events__[event].length, count = 0;
             for (let fn of this.__events__[event]) {
-                setTimeout(() => {
-                    fn.apply(self, args);
+                setTimeout(async function(){
+                    await fn.apply(self, args);
+                    count++;
+                    if( count >= len && (typeof then === 'function')) {
+                        let then_args = args.slice();
+                        then_args.unshift(1);
+                        then_args.unshift(then);
+                        setTimeout.apply(this, then_args);
+                    }
                 }, 1);
             }
         }
         return this;
     }
 
+
     /**
      * @function dispatchSync is used to call every functions of ${event} synchronously, with arguments ${arg}.
      * @param event string|array
      * @param args list|array|undefined
-     * @returns {EventTarget}
+     * @returns {Promise}
      */
 
-    dispatchSync(event, args) {
+    async dispatchSync(event, args) {
 
         if (is_string(event)) {
             event = event.toLowerCase();
             let split = event.split(/[, ]+/g);
             if (split.length >= 2) {
-                EventTarget.prototype.dispatchSync.call(this, split, args);
+                await EventTarget.prototype.dispatchSync.call(this, split, args);
                 return this;
             }
         }
         if (is_list(event)) {
             for (let ev of event)
-                EventTarget.prototype.dispatchSync.call(this, ev, args);
+                await EventTarget.prototype.dispatchSync.call(this, ev, args);
             return this;
         }
 
@@ -220,7 +230,7 @@ class EventTarget {
             args.unshift(obj);
 
             for (let fn of this.__events__[event]) {
-                fn.apply(this, args);
+                await fn.apply(this, args);
             }
         }
         return this;

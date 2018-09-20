@@ -7,7 +7,7 @@
     "http-code": "github:karkael64/http-code"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node unit"
   },
   "repository": {
     "type": "git",
