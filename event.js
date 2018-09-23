@@ -25,10 +25,7 @@ class Event {
         if (!(this instanceof Event))
             return new Event(type, params, target);
 
-        this.defaultPrevented = false;
-        this.propagationStopped = false;
-
-        let parent;
+        let parent = null;
         if (type instanceof Event) {
             parent = type;
             type = parent.type;
@@ -37,10 +34,34 @@ class Event {
         let defs = {};
         defs['type'] = type;
         defs['parent'] = parent;
-        defs['currentTarget'] = target;
+        defs['currentTarget'] = target || null;
         defs['timestamp'] = Date.now();
 
-        if (!parent) parent = {};
+        if (!parent) {
+            parent = {};
+            this.defaultPrevented = false;
+            this.propagationStopped = false;
+        }
+        else {
+            let self = this;
+            Object.defineProperty(this, 'defaultPrevented', {
+                "get": function () {
+                    return self.parent.defaultPrevented;
+                },
+                "set": function (value) {
+                    return self.parent.defaultPrevented = value;
+                }
+            });
+            Object.defineProperty(this, 'propagationStopped', {
+                "get": function () {
+                    return self.parent.propagationStopped;
+                },
+                "set": function (value) {
+                    return self.parent.propagationStopped = value;
+                }
+            });
+        }
+
         defs['detail'] = params || parent.detail || null;
         defs['value'] = parent.originalTarget || target || null;
         defs['originalTarget'] = parent.originalTarget || target || null;

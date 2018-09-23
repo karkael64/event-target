@@ -134,8 +134,8 @@ class EventTarget {
      * @function dispatch is used to call every functions of ${event} asynchronously after a short timeout, with
      * arguments ${args}.
      * @param event {Event|string|Array}
-     * @param args {Array|undefined}
-     * @param then {function({Event})}
+     * @param args {Array|void}
+     * @param then {function({Event})|void}
      * @returns {EventTarget}
      */
 
@@ -163,21 +163,21 @@ class EventTarget {
         else
             obj = new Event("", {}, this);
 
+        if (!is_list(args)) {
+            if (args === undefined) args = [];
+            else args = [args];
+        }
+        args.unshift(obj);
+
         let self = this;
         if (is_list(this.__events__[event])) {
 
-            if (!is_list(args)) {
-                if (args === undefined) args = [];
-                else args = [args];
-            }
-            args.unshift(obj);
-
             let len = this.__events__[event].length, count = 0;
             for (let fn of this.__events__[event]) {
-                setTimeout(async function(){
+                setTimeout(async function () {
                     await fn.apply(self, args);
                     count++;
-                    if( count >= len && (typeof then === 'function')) {
+                    if (count >= len && (typeof then === 'function')) {
                         let then_args = args.slice();
                         then_args.unshift(1);
                         then_args.unshift(then);
@@ -185,6 +185,12 @@ class EventTarget {
                     }
                 }, 1);
             }
+        }
+        else if (typeof then === 'function') {
+            let then_args = args.slice();
+            then_args.unshift(1);
+            then_args.unshift(then);
+            setTimeout.apply(this, then_args);
         }
         return this;
     }
